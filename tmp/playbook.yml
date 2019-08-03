@@ -1,0 +1,26 @@
+---
+- hosts: [hadoop]
+  remote_user: vagrant
+
+  tasks:
+    - name: check ping connection
+      ping:
+
+    - name: package states
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - net-tools
+        - openssh-server
+        - wget
+        - epel-release
+        - java-1.8.0-openjdk.x86_64
+        - java-1.8.0-openjdk-devel.x86_64
+      become: yes
+      become_method: sudo
+
+    - name: create hosts file for all machines
+      template: src=hosts.j2 dest=/etc/hosts
+      become: yes
+      become_method: sudo

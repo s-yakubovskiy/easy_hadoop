@@ -1,0 +1,105 @@
+---
+# This playbook runs all the common plays in the deployment
+    - name: check if hadoop dl'ed and extracted
+      stat:
+          path: /home/hadoop/hadoop-2.7.7/bin/hadoop
+      register: my_rule
+      become: yes
+      become_user: hadoop
+
+    - debug:
+        var: my_rule
+    - name: unpacking and chmod'ing on hadoop
+      shell: |
+          cd /home/hadoop/
+          wget http://mirrors.sonic.net/apache/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz
+          tar -xvf hadoop-2.7.7.tar.gz
+          chmod 755 hadoop-2.7.7
+      args:
+          executable: /bin/bash
+      register: tar_param
+      become: yes
+      become_user: hadoop
+      when: my_rule.stat.exists == false
+
+    - debug:
+        var: my_rule
+    - name: check if env exists
+      shell: grep HADOOP_HOME /home/hadoop/.bashrc
+      register: result
+      ignore_errors: true
+      become: yes
+      become_user: hadoop
+    - name: include vars from file
+      include_vars:
+          file: ../files/required_vars.yml
+          name: test_vars
+    - debug:
+        var: test_vars.var
+
+    - name: copy file
+      copy:
+          src: ./roles/namenode/files/export_env
+          dest: /tmp/vars
+      become: yes
+      become_user: hadoop
+
+    - name: hadoop environments
+      shell: cat /tmp/vars >> /home/hadoop/.bashrc
+      when: result.rc == 1
+      become: yes
+      become_user: hadoop
+    
+
+    - name: check if slaves configured
+      shell: wc -l /home/hadoop/hadoop-2.7.7/etc/hadoop/slaves
+      register:
+          slave_check 
+      become: yes
+      become_user: hadoop
+
+    - debug:
+        var: slave_check.stdout_lines[0][0]
+
+    - name: adding slaves to hadoop conf
+      shell: |
+        source /home/hadoop/.bashrc
+        echo slave1 > /home/hadoop/hadoop-2.7.7/etc/hadoop/slaves
+        echo slave2 >> /home/hadoop/hadoop-2.7.7/etc/hadoop/slaves
+        echo slave1 > /home/hadoop/hadoop-2.7.7/etc/hadoop/masters
+      when: slave_check.stdout_lines[0][0] == "1"
+      become: yes
+      become_user: hadoop
+
+    - name: check dirs created
+      stat:
+          path: /home/hadoop/hadoop-2.7.7/tmp
+      register:
+          dir_state
+      become: yes
+      become_user: hadoop
+
+    - name: creating dirs
+      when: dir_state.stat.exists == false
+      shell: |
+          mkdir -p /home/hadoop/hadoop-2.7.7/tmp
+          mkdir -p /home/hadoop/hadoop-2.7.7/hdfs/name
+          mkdir -p /home/hadoop/hadoop-2.7.7/hdfs/data
+      become: yes
+      become_user: hadoop
+
+    - name: copy files
+      when: dir_state.stat.exists == false
+      copy: src=./roles/datanodes/files/hadoop_configs/ dest=/home/hadoop/hadoop-2.7.7/etc/hadoop/  directory_mode=yes
+      become: yes
+      become_user: hadoop
+
+    - name: scp to slaves
+      when: dir_state.stat.exists == false
+      shell: |
+          scp ~/.bashrc slave1:~/
+          scp ~/.bashrc slave2:~/
+          scp -r ~/hadoop-2.7.7 slave1:~/
+          scp -r ~/hadoop-2.7.7 slave2:~/
+      become: yes
+      become_user: hadoop

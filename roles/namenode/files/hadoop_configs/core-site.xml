@@ -1,0 +1,20 @@
+<configuration>
+<property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://master:9000/</value>
+    <description>namenode settings</description>
+</property>
+<property>
+    <name>hadoop.tmp.dir</name>
+    <value>/home/hadoop/hadoop-2.7.7/tmp/hadoop-${user.name}</value>
+    <description> temp folder </description>
+</property>  
+<property>
+    <name>hadoop.proxyuser.hadoop.hosts</name>
+    <value>*</value>
+</property>
+<property>
+    <name>hadoop.proxyuser.hadoop.groups</name>
+    <value>*</value>
+</property>
+</configuration>

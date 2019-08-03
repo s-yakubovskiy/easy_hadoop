@@ -1,0 +1,23 @@
+---
+#This plahybook would deploy hadoop cluster of 2 slaves and 1 master name node
+- hosts: hadoop
+  vars:
+      password: $6$aLBk/nz9WNhTRZtz$cBXpRJt/D80wqZY/Le.k2/0uYCgOYjyjcFlM4Yxfv0yw2ZRwqwPiqJZoQRbYBKDQtSKinaVYVr6AHR4RXjWhf1
+  roles:
+    - role: common
+
+- hosts: master
+  roles:
+  - role: namenode
+    include_vars:
+      file: roles/namenode/files/required_vars.yml
+      name: test
+              
+- host: master
+  tasks:
+      shell: |
+          hdfs namenode -format
+          start-dfs.h
+          start-yarn.sh
+      become: yes
+      become_user: hadoop

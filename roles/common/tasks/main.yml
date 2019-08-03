@@ -1,0 +1,86 @@
+---
+# This playbook runs all the common plays in the deployment
+    - name: check ping connection
+      ping:
+    
+    - name: Install && check core packages 
+      yum:
+        name:
+        - epel-release
+        - net-tools
+        - wget
+        - java-1.8.0-openjdk.x86_64
+        - java-1.8.0-openjdk-devel.x86_64
+        - bc
+        state: present
+      become: yes
+      become_method: sudo
+      #ignore_errors: yes
+
+    - name: create hosts file for all machines
+      template: src=hosts.j2 dest=/etc/hosts
+      become: yes
+      become_method: sudo
+
+    - name: export env for JAVA (java.sh)
+      copy: src=java.sh dest=/etc/profile.d/java.sh
+      become: True
+    
+    - name: ensure that group exists
+      group:
+          name: hadoop
+          state: present
+      become: True
+
+    - name: creating user and group hadoop:hadoop
+      user:
+          name: hadoop
+          password: "{{password}}"
+          groups:
+              - hadoop
+          shell: /bin/bash
+          state: present
+      become: True
+
+    - name: create .ssh dir
+      file:
+          path: /home/hadoop/.ssh
+          state: directory
+          mode: '0755'
+      become: yes
+      become_user: hadoop
+
+    - name: "Check wheel"
+      group:
+          name: wheel
+          state: present
+
+    - name: allow wheel group to have paswwordless sudo
+      lineinfile:
+          dest: /etc/sudoers
+          state: present
+          regexp: '^%wheel'
+          line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+          validate: 'visudo -cf %s'
+      become: yes
+      become_method: sudo
+
+    - name: add sudoers users to wheel group
+      user: name=hadoop groups=wheel append=yes state=present createhome=yes
+      become: yes
+      become_method: sudo
+
+    - name: copy ssh settings from vagrant to hadoop
+      command: cp -r /home/vagrant/.ssh /home/hadoop/
+      args:
+        warn: false
+      become: yes
+      become_method: sudo
+
+    - name: chowning to hadoop
+      command: chown -R hadoop:hadoop /home/hadoop/.ssh/
+      become: yes
+      become_method: sudo
+      args:
+        warn: false
+      #

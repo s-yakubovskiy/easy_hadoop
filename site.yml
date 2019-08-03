@@ -13,7 +13,7 @@
       file: roles/namenode/files/required_vars.yml
       name: test
               
-- host: master
+- hosts: master
   tasks:
       shell: |
           hdfs namenode -format

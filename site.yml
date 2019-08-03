@@ -15,9 +15,10 @@
               
 - hosts: master
   tasks:
-      shell: |
-          hdfs namenode -format
-          start-dfs.h
-          start-yarn.sh
-      become: yes
-      become_user: hadoop
+      - name: launching hdfs cluster
+        shell: |
+            #hdfs namenode -format
+            bash start-dfs.sh
+            bash start-yarn.sh
+        become: yes
+        become_user: hadoop
